@@ -1,25 +1,30 @@
 # Multiplayer Game
 
-Um jogo multiplayer simples em tempo real desenvolvido com Node.js, Express, Socket.IO e Canvas HTML5.
+Um jogo multiplayer em tempo real desenvolvido com Node.js, Express, Socket.IO e Canvas HTML5.
 
 ## 📋 Descrição
 
-Este é um jogo multiplayer onde os jogadores controlam personagens em uma grade 10x10 e coletam frutas que aparecem aleatoriamente no mapa. O jogo utiliza WebSockets para comunicação em tempo real entre o servidor e os clientes.
+Este é um jogo multiplayer onde os jogadores controlam personagens e coletam frutas que aparecem aleatoriamente no mapa. O jogo possui sistema de pontuação, leaderboard em tempo real, diferentes tipos de frutas e efeitos sonoros.
 
 ## 🎮 Como Jogar
 
 - Use as **setas do teclado** para mover seu personagem
-- **Colete frutas verdes** que aparecem no mapa
-- Seu personagem é destacado em **amarelo (#F0DB4F)**
-- Outros jogadores aparecem em **preto**
+- **Colete frutas** que aparecem no mapa:
+  - 🟢 **Frutas verdes** = 1 ponto
+  - 🔴 **Frutas vermelhas** = 5 pontos (mais raras)
+- Seu personagem é destacado em **amarelo**
+- **Teleporte**: Passe pelas bordas da tela para aparecer do lado oposto
+- Acompanhe sua posição no **Top 10 Leaderboard**
+- adversários são destacados em **preto semi-transparente**
 
 ## 🚀 Tecnologias Utilizadas
 
 - **Node.js** - Runtime JavaScript
-- **Express** - Framework web
+- **Express** - Framework web  
 - **Socket.IO** - Comunicação em tempo real via WebSockets
 - **HTML5 Canvas** - Renderização do jogo
 - **ES6 Modules** - Modularização do código
+- **Nodemon** - Auto-restart do servidor em desenvolvimento
 
 ## 📦 Instalação
 
@@ -34,9 +39,14 @@ cd multiplayer-game
 npm install
 ```
 
-3. Inicie o servidor:
+3. Inicie o servidor em modo desenvolvimento:
 ```bash
-node server.js
+npm run dev
+```
+
+Ou para produção:
+```bash
+npm start
 ```
 
 4. Abra seu navegador e acesse:
@@ -49,10 +59,13 @@ http://localhost:3000
 ```
 multiplayer-game/
 ├── public/
-│   ├── game.js              # Lógica principal do jogo
+│   ├── game.js              # Lógica principal do cliente
 │   ├── index.html           # Interface do cliente
 │   ├── keyboard-listener.js # Gerenciamento de eventos do teclado
-│   └── render-screen.js     # Renderização da tela do jogo
+│   ├── render-screen.js     # Renderização da tela
+│   ├── collect-green.mp3    # Som de coleta - fruta verde
+│   └── collect-red.mp3      # Som de coleta - fruta vermelha
+├── game-server.js           # Lógica principal do servidor
 ├── server.js                # Servidor Express com Socket.IO
 ├── package.json            # Configurações e dependências
 └── README.md               # Documentação do projeto
@@ -60,29 +73,24 @@ multiplayer-game/
 
 ## 🎲 Mecânicas do Jogo
 
-1. **Conexão**: Quando um jogador se conecta, recebe um ID único
-2. **Spawn**: Jogadores aparecem em posições aleatórias na grade 10x10
-3. **Movimento**: Limitado aos limites da tela (0-9 em X e Y)
-4. **Frutas**: Aparecem automaticamente a cada 2 segundos em posições aleatórias
-5. **Colisão**: Quando um jogador toca uma fruta, ela é removida do mapa
-6. **Desconexão**: Jogadores são removidos automaticamente ao desconectar
+### ⚡ Jogadores
+1. **Conexão**: Cada jogador recebe um ID único e nome automático ("Jogador XXX")
+2. **Spawn**: Jogadores aparecem em posições aleatórias
+3. **Movimento**: Teleporte nas bordas - passe por uma parede para aparecer do lado oposto
+4. **Identificação Visual**: 
+   - Seu player: Amarelo
+   - Outros: Preto semi-transparente
 
-## 🚧 Possíveis Melhorias
+### 🍎 Sistema de Frutas
+5. **Spawn automático**: Frutas aparecem automaticamente em posições vazias
+6. **Tipos de fruta**:
+   - **Verde** (90% chance): 1 ponto + som
+   - **Vermelha** (10% chance): 5 pontos + som diferente
 
-- [ ] Aumentar o tamanho do mapa
-- [ ] Teleportar o jogador nas bordas do mapa
-- [ ] Sistema de pontuação
-- [ ] Leaderboard (top 10)
-- [ ] Total de jogadores conectados
-- [ ] Efeitos visuais e sonoros
-- [ ] Diferentes tipos de frutas com valores distintos
-- [ ] Rota de admin
-  - [ ] Define a quantidade de frutas geradas por milisegundo
-  - [ ] Inicia ou interrompe a geração de frutas
-  - [ ] Inicia ou interrompe o 'crazy mode' (modo louco)
-  - [ ] Zera a pontuação de todos os jogadores
-  - [ ] Define o limite de jogadores conectados
-  - [ ] Adiciona ou remove obstáculos no mapa
+### 🏆 Sistema de Pontuação
+7. **Pontuação em tempo real**: Score atualizado instantaneamente
+8. **Leaderboard**: Top 10 jogadores com ranking dinâmico
+9. **Identificação pessoal**: Seu player destacado na tabela
 
 ## 👨‍💻 Autor
 

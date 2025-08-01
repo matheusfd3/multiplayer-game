@@ -1,6 +1,6 @@
 import express from 'express'
-import { createServer } from 'node:http';
-import createGame from './public/game.js'
+import { createServer } from 'node:http'
+import createGame from './game-server.js'
 import { Server } from 'socket.io'
 
 const app = express()
@@ -10,11 +10,11 @@ const sockets = new Server(server)
 app.use(express.static('public'))
 
 const game = createGame()
-game.start()
+game.startFruitSpawn(1000)
 
 game.subscribe((command) => {
   console.log(`> Emitting ${command.type}`)
-  sockets.emit(command.type, command)
+  sockets.emit('game-update', game.state)
 })
 
 sockets.on('connection', (socket) => {

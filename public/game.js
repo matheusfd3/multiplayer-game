@@ -1,23 +1,14 @@
 export default function createGame() {
-  const state = {
-    players: {},
-    fruits: {},
-    screen: {
-      width: 10,
-      height: 10
-    }
-  }
-
+  let myPlayerId = ""
+  const state = {}
   const observers = []
-
-  function start() {
-    const frequency = 2000
-
-    setInterval(addFruit, frequency)
-  }
-
+  
   function subscribe(observerFunction) {
     observers.push(observerFunction)
+  }
+
+  function unsubscribeAll() {
+    observers.length = 0
   }
 
   function notifyAll(command) {
@@ -26,102 +17,54 @@ export default function createGame() {
     }
   }
 
+  function registerPlayerId(playerId) {
+    myPlayerId = playerId
+  }
+
   function setState(newState) {
     Object.assign(state, newState)
   }
 
-  function addPlayer(command) {
-    const playerId = command.playerId
-    const playerX = 'playerX' in command ? command.playerX : Math.floor(Math.random() * state.screen.width)
-    const playerY = 'playerY' in command ? command.playerY : Math.floor(Math.random() * state.screen.height)
-
-    state.players[playerId] = {
-      x: playerX,
-      y: playerY
-    }
-
-    notifyAll({
-      type: 'add-player',
-      playerId: playerId,
-      playerX: playerX,
-      playerY: playerY
-    })
-  }
-
-  function removePlayer(command) {
-    const playerId = command.playerId
-
-    delete state.players[playerId]
-
-    notifyAll({
-      type: 'remove-player',
-      playerId: playerId
-    })
-  }
-
-  function addFruit(command) {
-    const fruitId = command ? command.fruitId : Math.floor(Math.random() * 10000000)
-    const fruitX = command ? command.fruitX : Math.floor(Math.random() * state.screen.width)
-    const fruitY = command ? command.fruitY : Math.floor(Math.random() * state.screen.height)
-
-    state.fruits[fruitId] = {
-      x: fruitX,
-      y: fruitY
-    }
-
-    notifyAll({
-      type: 'add-fruit',
-      fruitId: fruitId,
-      fruitX: fruitX,
-      fruitY: fruitY
-    })
-  }
-
-  function removeFruit(command) {
-    const fruitId = command.fruitId
-
-    delete state.fruits[fruitId]
-
-    notifyAll({
-      type: 'remove-fruit',
-      fruitId: fruitId,
-    })
-  }
-
   function movePlayer(command) {
-    notifyAll(command)
-
     const acceptedMoves = {
       ArrowUp(player) {
-        if (player.y - 1 >= 0) {
-          player.y = player.y - 1
+        player.y = player.y - 1
+        if (player.y < 0) {
+          player.y = state.screen.height - 1 // Teleporta para a parte de baixo
         }
       },
       ArrowRight(player) {
-        if (player.x + 1 < state.screen.width) {
-          player.x = player.x + 1
+        player.x = player.x + 1
+        if (player.x >= state.screen.width) {
+          player.x = 0 // Teleporta para a esquerda
         }
       },
       ArrowDown(player) {
-        if (player.y + 1 < state.screen.height) {
-          player.y = player.y + 1
+        player.y = player.y + 1
+        if (player.y >= state.screen.height) {
+          player.y = 0 // Teleporta para a parte de cima
         }
       },
       ArrowLeft(player) {
-        if (player.x - 1 >= 0) {
-          player.x = player.x - 1
+        player.x = player.x - 1
+        if (player.x < 0) {
+          player.x = state.screen.width - 1 // Teleporta para a direita
         }
       }
     }
 
     const keyPressed = command.keyPressed
-    const playerId = command.playerId
-    const player = state.players[playerId]
+    const player = state.players[myPlayerId]
     const moveFunction = acceptedMoves[keyPressed]
 
     if (player && moveFunction) {
       moveFunction(player)
-      checkForFruitCollision(playerId)
+      checkForFruitCollision(myPlayerId)
+      notifyAll({
+        type: 'move-player',
+        playerId: myPlayerId,
+        keyPressed: keyPressed
+      })
     }
   }
 
@@ -130,24 +73,92 @@ export default function createGame() {
 
     for (const fruitId in state.fruits) {
       const fruit = state.fruits[fruitId]
-      console.log(`Checking ${playerId} and ${fruitId}`)
 
       if (player.x === fruit.x && player.y === fruit.y) {
-        console.log(`COLLISION between ${playerId} and ${fruitId}`)
+        // Adicionar pontos baseado no tipo da fruta
+        const points = fruit.type === 'red' ? 5 : 1 // Fruta vermelha vale 5 pontos
+        const soundPath = fruit.type === 'red' ? './collect-red.mp3' : './collect-green.mp3'
+
+        playCollectSound(soundPath)
+        addScore(playerId, points)
         removeFruit({ fruitId: fruitId })
+        updateLeaderboard()
       }
     }
   }
 
+  function playCollectSound(path) {
+    try {
+      const audio = new Audio(path)
+      audio.play().catch(error => {
+        console.log('Could not play collect sound:', error)
+      })
+    } catch (error) {
+      console.log('Error creating audio:', error)
+    }
+  }
+
+  function addScore(playerId, points) {
+    const player = state.players[playerId]
+    player.score += points
+  }
+
+  function removeFruit(command) {
+    const fruitId = command.fruitId
+    delete state.fruits[fruitId]
+  }
+
+  function updateLeaderboard() {
+    const players = state.players
+
+    // Converter para array e ordenar por pontos
+    const playersArray = Object.keys(players).map(playerId => ({
+      id: playerId,
+      name: players[playerId].name,
+      score: players[playerId].score
+    }))
+
+    // Ordenar por pontos (maior para menor)
+    playersArray.sort((a, b) => b.score - a.score)
+
+    // Pegar apenas os top 10
+    const top10 = playersArray.slice(0, 10)
+
+    // Atualizar tabela
+    const tbody = document.getElementById('leaderboard-body')
+    tbody.innerHTML = ''
+
+    top10.forEach((player, index) => {
+      const rank = index + 1
+      const row = document.createElement('tr')
+
+      // Adicionar classe para top 3
+      if (rank <= 3) {
+        row.className = `rank-${rank}`
+      }
+
+      // Destacar meu player
+      if (player.id === myPlayerId) {
+        row.className += (row.className ? ' ' : '') + 'my-player'
+      }
+
+      row.innerHTML = `
+        <td>${rank}</td>
+        <td>${player.name}</td>
+        <td>${player.score}</td>
+      `
+
+      tbody.appendChild(row)
+    })
+  }
+
   return {
-    addPlayer,
-    removePlayer,
-    movePlayer,
-    addFruit,
-    removeFruit,
-    state,
-    setState,
     subscribe,
-    start
+    unsubscribeAll,
+    registerPlayerId,
+    movePlayer,
+    updateLeaderboard,
+    state,
+    setState
   }
 }
